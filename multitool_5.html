@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多機能ツールアプリ (5機能版)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+        :root {
+            --primary-color: #007bff;
+            --light-gray: #f4f7f9;
+            --dark-gray: #333;
+            --border-color: #e0e0e0;
+            --today-highlight: #ffc107;
+        }
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: var(--light-gray);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 220px;
+            background-color: #fff;
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .sidebar h1 {
+            font-size: 24px;
+            color: var(--primary-color);
+            margin: 0 0 20px 0;
+            text-align: center;
+        }
+        .nav-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            background-color: transparent;
+            color: var(--dark-gray);
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .nav-btn:hover {
+            background-color: var(--light-gray);
+        }
+        .nav-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+        .tool-content {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .hidden {
+            display: none;
+        }
+        /* 共通のUIスタイル */
+        h2 { margin-top: 0; }
+        input, select, textarea, button {
+            font-family: inherit;
+            font-size: 16px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+        button { cursor: pointer; }
+        .grid-container { display: grid; gap: 10px; }
+        .output-display { 
+            background: #f0f0f0; padding: 15px; text-align: right; font-size: 28px; font-weight: bold; border-radius: 8px; margin-bottom: 15px; min-height: 30px; 
+        }
+
+        /* 個別ツールのスタイル */
+        #calculator-grid { grid-template-columns: repeat(4, 1fr); }
+        #calculator-grid button { padding: 20px; font-size: 20px; }
+        #stopwatch-laps { list-style: none; padding: 0; margin-top: 15px; }
+        #word-counter-area { width: 95%; height: 150px; margin-bottom: 15px; padding: 15px; }
+        
+        /* カレンダーのスタイル */
+        #calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        #calendar-header button { font-size: 20px; padding: 5px 15px; }
+        #calendar-month-year { font-size: 22px; font-weight: bold; }
+        #calendar-grid-days { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: bold; color: #999; margin-bottom: 10px; }
+        #calendar-grid-dates { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .calendar-date { text-align: center; padding: 15px 0; border-radius: 8px; transition: background-color 0.2s; }
+        .date-prev-month, .date-next-month { color: #ccc; }
+        .date-today { background-color: var(--today-highlight); color: white; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <h1>ツールキット</h1>
+        <button class="nav-btn active" data-target="calculator">電卓</button>
+        <button class="nav-btn" data-target="timer">タイマー</button>
+        <button class="nav-btn" data-target="stopwatch">ストップウォッチ</button>
+        <button class="nav-btn" data-target="word-counter">文字数カウンター</button>
+        <button class="nav-btn" data-target="calendar">カレンダー</button>
+    </nav>
+
+    <main class="main-content">
+        <!-- 電卓 -->
+        <div id="calculator" class="tool-content">
+            <h2>電卓</h2>
+            <div id="calc-display" class="output-display">0</div>
+            <div id="calculator-grid" class="grid-container">
+                <button>C</button><button>(</button><button>)</button><button>/</button>
+                <button>7</button><button>8</button><button>9</button><button>*</button>
+                <button>4</button><button>5</button><button>6</button><button>-</button>
+                <button>1</button><button>2</button><button>3</button><button>+</button>
+                <button>0</button><button>.</button><button>DEL</button><button>=</button>
+            </div>
+        </div>
+
+        <!-- タイマー -->
+        <div id="timer" class="tool-content hidden">
+            <h2>タイマー</h2>
+            <div id="timer-display" class="output-display" style="font-size: 48px; text-align: center;">00:00:00</div>
+            <div class="grid-container" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 15px;">
+                <input type="number" id="timer-hours" min="0" placeholder="時" value="0">
+                <input type="number" id="timer-minutes" min="0" max="59" placeholder="分" value="5">
+                <input type="number" id="timer-seconds" min="0" max="59" placeholder="秒" value="0">
+            </div>
+            <div class="grid-container" style="grid-template-columns: repeat(2, 1fr);">
+                <button id="timer-toggle">スタート</button>
+                <button id="timer-reset">リセット</button>
+            </div>
+        </div>
+
+        <!-- ストップウォッチ -->
+        <div id="stopwatch" class="tool-content hidden">
+            <h2>ストップウォッチ</h2>
+            <div id="stopwatch-display" class="output-display" style="font-size: 48px; text-align: center;">00:00:00.000</div>
+            <div class="grid-container" style="grid-template-columns: repeat(2, 1fr);">
+                <button id="stopwatch-toggle">スタート</button>
+                <button id="stopwatch-reset">リセット</button>
+            </div>
+            <button id="stopwatch-lap" style="width: 100%; margin-top: 10px;">ラップ</button>
+            <ul id="stopwatch-laps"></ul>
+        </div>
+
+        <!-- 文字数カウンター -->
+        <div id="word-counter" class="tool-content hidden">
+            <h2>文字数カウンター</h2>
+            <textarea id="word-counter-area"></textarea>
+            <div id="word-counter-result" class="output-display" style="text-align: left; font-size: 18px;">文字数: 0 | 単語数: 0 | 行数: 1</div>
+        </div>
+
+        <!-- カレンダー -->
+        <div id="calendar" class="tool-content hidden">
+            <h2>カレンダー</h2>
+            <div id="calendar-header">
+                <button id="calendar-prev">‹</button>
+                <div id="calendar-month-year"></div>
+                <button id="calendar-next">›</button>
+            </div>
+            <div id="calendar-grid-days">
+                <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+            </div>
+            <div id="calendar-grid-dates"></div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- メインナビゲーション --- //
+        const navButtons = document.querySelectorAll('.nav-btn');
+        const toolContents = document.querySelectorAll('.tool-content');
+
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                navButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                toolContents.forEach(content => {
+                    content.classList.add('hidden');
+                });
+                const targetTool = document.getElementById(button.dataset.target);
+                targetTool.classList.remove('hidden');
+
+                // カレンダーが選択されたら描画処理を呼ぶ
+                if (button.dataset.target === 'calendar') {
+                    renderCalendar();
+                }
+            });
+        });
+
+        // --- 電卓 --- //
+        const calcDisplay = document.getElementById('calc-display');
+        const calcGrid = document.getElementById('calculator-grid');
+        let calcString = '0';
+
+        calcGrid.addEventListener('click', e => {
+            if (e.target.tagName !== 'BUTTON') return;
+            const key = e.target.textContent;
+
+            if (key === 'C') {
+                calcString = '0';
+            } else if (key === 'DEL') {
+                calcString = calcString.slice(0, -1) || '0';
+            } else if (key === '=') {
+                try {
+                    calcString = String(eval(calcString.replace(/\/$/, '')));
+                } catch {
+                    calcString = 'Error';
+                }
+            } else {
+                if (calcString === '0' || calcString === 'Error') calcString = '';
+                calcString += key;
+            }
+            calcDisplay.textContent = calcString;
+        });
+
+        // --- タイマー --- //
+        const timerDisplay = document.getElementById('timer-display');
+        const timerInputs = { h: document.getElementById('timer-hours'), m: document.getElementById('timer-minutes'), s: document.getElementById('timer-seconds') };
+        const timerToggleBtn = document.getElementById('timer-toggle');
+        const timerResetBtn = document.getElementById('timer-reset');
+        let timerInterval, totalSecondsTimer = 0, isTimerRunning = false;
+
+        function updateTimerDisplay() {
+            const h = Math.floor(totalSecondsTimer / 3600);
+            const m = Math.floor((totalSecondsTimer % 3600) / 60);
+            const s = totalSecondsTimer % 60;
+            timerDisplay.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+
+        timerToggleBtn.addEventListener('click', () => {
+            if (isTimerRunning) {
+                clearInterval(timerInterval);
+                timerToggleBtn.textContent = '再開';
+                isTimerRunning = false;
+            } else {
+                if(totalSecondsTimer <= 0) {
+                    totalSecondsTimer = (parseInt(timerInputs.h.value) * 3600) + (parseInt(timerInputs.m.value) * 60) + parseInt(timerInputs.s.value);
+                }
+                if (totalSecondsTimer <= 0) return;
+                
+                isTimerRunning = true;
+                timerToggleBtn.textContent = 'ストップ';
+                timerInterval = setInterval(() => {
+                    totalSecondsTimer--;
+                    updateTimerDisplay();
+                    if (totalSecondsTimer <= 0) {
+                        clearInterval(timerInterval);
+                        isTimerRunning = false;
+                        timerToggleBtn.textContent = 'スタート';
+                        alert('時間です！');
+                    }
+                }, 1000);
+            }
+        });
+
+        timerResetBtn.onclick = () => {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            totalSecondsTimer = 0;
+            updateTimerDisplay();
+            timerInputs.h.value = 0; timerInputs.m.value = 5; timerInputs.s.value = 0;
+            timerToggleBtn.textContent = 'スタート';
+        };
+
+        // --- ストップウォッチ --- //
+        const stopwatchDisplay = document.getElementById('stopwatch-display');
+        const lapsList = document.getElementById('stopwatch-laps');
+        const stopwatchToggleBtn = document.getElementById('stopwatch-toggle');
+        const stopwatchResetBtn = document.getElementById('stopwatch-reset');
+        const stopwatchLapBtn = document.getElementById('stopwatch-lap');
+        let stopwatchInterval, startTime, elapsedTime = 0, lapCount = 1, isStopwatchRunning = false;
+
+        function formatStopwatch(time) {
+            const m = Math.floor((time % 3600000) / 60000);
+            const s = Math.floor((time % 60000) / 1000);
+            const ms = time % 1000;
+            return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(ms).padStart(3,'0')}`;
+        }
+
+        stopwatchToggleBtn.addEventListener('click', () => {
+            if(isStopwatchRunning) {
+                clearInterval(stopwatchInterval);
+                isStopwatchRunning = false;
+                stopwatchToggleBtn.textContent = '再開';
+            } else {
+                isStopwatchRunning = true;
+                stopwatchToggleBtn.textContent = 'ストップ';
+                startTime = Date.now() - elapsedTime;
+                stopwatchInterval = setInterval(() => {
+                    elapsedTime = Date.now() - startTime;
+                    stopwatchDisplay.textContent = formatStopwatch(elapsedTime);
+                }, 10);
+            }
+        });
+
+        stopwatchResetBtn.onclick = () => {
+            clearInterval(stopwatchInterval);
+            isStopwatchRunning = false;
+            elapsedTime = 0;
+            stopwatchDisplay.textContent = formatStopwatch(0);
+            lapsList.innerHTML = '';
+            lapCount = 1;
+            stopwatchToggleBtn.textContent = 'スタート';
+        };
+
+        stopwatchLapBtn.onclick = () => {
+            if (!isStopwatchRunning) return;
+            const li = document.createElement('li');
+            li.textContent = `ラップ ${lapCount++}: ${formatStopwatch(elapsedTime)}`;
+            lapsList.prepend(li);
+        };
+
+        // --- 文字数カウンター --- //
+        const textArea = document.getElementById('word-counter-area');
+        const wordResult = document.getElementById('word-counter-result');
+        textArea.addEventListener('input', () => {
+            const text = textArea.value;
+            const chars = text.length;
+            const words = text.trim().split(/\s+/).filter(s => s).length;
+            const lines = text.split('\n').length;
+            wordResult.textContent = `文字数: ${chars} | 単語数: ${words} | 行数: ${lines}`;
+        });
+
+        // --- カレンダー --- //
+        const calendarMonthYear = document.getElementById('calendar-month-year');
+        const calendarDatesGrid = document.getElementById('calendar-grid-dates');
+        const prevMonthBtn = document.getElementById('calendar-prev');
+        const nextMonthBtn = document.getElementById('calendar-next');
+        let currentDate = new Date();
+
+        function renderCalendar() {
+            calendarDatesGrid.innerHTML = '';
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            calendarMonthYear.textContent = `${year}年 ${month + 1}月`;
+
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const lastDateOfMonth = new Date(year, month + 1, 0).getDate();
+            const lastDateOfPrevMonth = new Date(year, month, 0).getDate();
+
+            // 前月の日付を追加
+            for (let i = firstDayOfMonth; i > 0; i--) {
+                const dateDiv = document.createElement('div');
+                dateDiv.classList.add('calendar-date', 'date-prev-month');
+                dateDiv.textContent = lastDateOfPrevMonth - i + 1;
+                calendarDatesGrid.appendChild(dateDiv);
+            }
+
+            // 今月の日付を追加
+            const today = new Date();
+            for (let i = 1; i <= lastDateOfMonth; i++) {
+                const dateDiv = document.createElement('div');
+                dateDiv.classList.add('calendar-date');
+                dateDiv.textContent = i;
+                if (year === today.getFullYear() && month === today.getMonth() && i === today.getDate()) {
+                    dateDiv.classList.add('date-today');
+                }
+                calendarDatesGrid.appendChild(dateDiv);
+            }
+
+            // 来月の日付を追加
+            const remainingCells = 42 - calendarDatesGrid.children.length;
+            for (let i = 1; i <= remainingCells; i++) {
+                const dateDiv = document.createElement('div');
+                dateDiv.classList.add('calendar-date', 'date-next-month');
+                dateDiv.textContent = i;
+                calendarDatesGrid.appendChild(dateDiv);
+            }
+        }
+
+        prevMonthBtn.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        });
+
+        nextMonthBtn.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+    </script>
+</body>
+</html>
